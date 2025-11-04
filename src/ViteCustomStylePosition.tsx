@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export const ViteCustomStylePosition = () => {
+export const StylesTarget = () => {
   const [stylesMap, setStylesMap] = useState<
     Map<string, { css: string; attributes: Record<string, string> }>
   >(window.__vite_c_css_pos_initial || new Map());
