@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-react-css-position",
-  "version": "0.5.8",
+  "version": "1.0.0",
   "description": "Custom position of vite styles within a vite react app",
   "type": "module",
   "license": "MIT",
