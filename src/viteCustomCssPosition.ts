@@ -1,6 +1,6 @@
 import type { Plugin } from "vite";
 import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
-import { randomUUID } from "crypto";
+import { randomUUID, hash } from "crypto";
 
 export interface ViteCustomCssPositionOptions {
   instanceId?: string;
@@ -32,7 +32,8 @@ export default function viteCustomCssPosition(
     injectCode: (css, attributes) => {
       const attributesString = JSON.stringify(attributes.attributes || {});
       const id = `"${
-        attributes.attributes?.["data-vite-dev-id"] ?? "__nokey__"
+        attributes.attributes?.["data-vite-dev-id"] ??
+        hash("sha1", css).substring(0, 12)
       }"`;
       return `
     const css = ${css};
