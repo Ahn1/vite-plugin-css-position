@@ -20,10 +20,13 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./StylesTarget": {
-      "import": "./dist/StylesTarget.js",
-      "types": "./dist/StylesTarget.d.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./target": {
+      "types": "./dist/StylesTarget.d.ts",
+      "default": "./dist/StylesTarget.js"
     },
     "./package.json": "./package.json"
   },

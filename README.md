@@ -23,7 +23,7 @@ export default defineConfig({
 ### Include CSS on Custom Position
 
 ```JS
-import StylesTarget from "vite-plugin-react-css-position/StylesTarget";
+import StylesTarget from "vite-plugin-react-css-position/target";
 
 export function App() {
   return (
