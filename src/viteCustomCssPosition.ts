@@ -30,7 +30,7 @@ export default function viteCustomCssPosition(
       },
     },
     injectCode: (css, attributes) => {
-      const attributesString = JSON.stringify(attributes.attributes);
+      const attributesString = JSON.stringify(attributes.attributes || {});
       const id = `"${
         attributes.attributes?.["data-vite-dev-id"] ?? "__nokey__"
       }"`;
