@@ -30,7 +30,6 @@ export default function viteCustomCssPosition(
       },
     },
     injectCode: (css, attributes) => {
-      console.log("injectCode", css, attributes);
       const attributesString = JSON.stringify(attributes.attributes);
       const id = `"${
         attributes.attributes?.["data-vite-dev-id"] ?? "__nokey__"
@@ -43,7 +42,6 @@ export default function viteCustomCssPosition(
       window.${globalVarName}.set(id, {css, attributes});
 
       window.dispatchEvent( new Event('${eventName}') );
-      console.log("injectCode done", window.${globalVarName});
     `;
     },
   });
