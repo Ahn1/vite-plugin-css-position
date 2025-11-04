@@ -44,12 +44,16 @@ export default function viteCustomCssPosition(
     },
   });
 
+  const plugins = Array.isArray(cssPlugin) ? cssPlugin : [cssPlugin];
+
   return [
     {
       name: "vite-plugin-custom-css-position",
-      config() {
+      enforce: "pre",
+      config(config) {
         return {
           define: {
+            ...config.define,
             __VITE_CSS_POS_INSTANCE_ID__: JSON.stringify(instanceId),
             __VITE_CSS_POS_VAR_NAME__: JSON.stringify(globalVarName),
             __VITE_CSS_POS_EVENT_NAME__: JSON.stringify(eventName),
@@ -57,6 +61,6 @@ export default function viteCustomCssPosition(
         };
       },
     } satisfies Plugin,
-    ...(Array.isArray(cssPlugin) ? cssPlugin : [cssPlugin]),
+    ...plugins,
   ];
 }
