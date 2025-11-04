@@ -1,16 +1,16 @@
 {
   "name": "vite-plugin-react-css-position",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Custom position of vite styles within a vite react app",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://github.com/author/library#readme",
+  "homepage": "https://github.com/Ahn1/vite-plugin-react-css-position",
   "bugs": {
     "url": "https://github.com/author/library/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/author/library.git"
+    "url": "git+https://github.com/Ahn1/vite-plugin-react-css-position.git"
   },
   "author": "Alexander Bogoslawski <alexanderb@posteo.de>",
   "files": [
