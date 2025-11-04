@@ -1,21 +1,12 @@
 import { useEffect, useState } from "react";
 
 const getGlobalVarName = (): string => {
-  if (typeof __VITE_CSS_POS_VAR_NAME__ !== "undefined") {
-    return __VITE_CSS_POS_VAR_NAME__;
-  }
   return "__vite_c_css_pos_initial";
 };
 
 const getEventName = (): string => {
-  if (typeof __VITE_CSS_POS_EVENT_NAME__ !== "undefined") {
-    return __VITE_CSS_POS_EVENT_NAME__;
-  }
   return "__vite_c_css_pos_update";
 };
-
-declare const __VITE_CSS_POS_VAR_NAME__: string | undefined;
-declare const __VITE_CSS_POS_EVENT_NAME__: string | undefined;
 
 export const StylesTarget = () => {
   const globalVarName = getGlobalVarName();
