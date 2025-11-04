@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 
-const getCurrent = () => (window as any)["__vite_c_css_pos_initial"];
+declare const __VITE_CSS_POS_GLOBAL_VAR_NAME__: string;
+declare const __VITE_CSS_POS_EVENT_NAME__: string;
+
+const globalVarName = __VITE_CSS_POS_GLOBAL_VAR_NAME__;
+const eventName = __VITE_CSS_POS_EVENT_NAME__;
+
+const getCurrent = () => (window as any)[globalVarName];
 
 const StylesTarget = (props: {
   onChange?: (
     stylesMap: Map<string, { css: string; attributes: Record<string, string> }>
   ) => void;
 }) => {
-  const globalVarName = "__vite_c_css_pos_initial";
-  const eventName = "__vite_c_css_pos_update";
-
   const [stylesMap, setStylesMap] = useState<
     Map<string, { css: string; attributes: Record<string, string> }>
   >(getCurrent() || new Map());
@@ -30,7 +33,7 @@ const StylesTarget = (props: {
     return () => {
       window.removeEventListener(eventName, updateListener);
     };
-  }, [globalVarName, eventName, props.onChange]);
+  }, [props.onChange]);
 
   return Array.from(stylesMap?.keys() || []).map((key) => {
     const entry = stylesMap.get(key);

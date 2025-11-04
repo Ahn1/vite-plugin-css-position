@@ -12,8 +12,8 @@ export default function viteCustomCssPosition(
 ): Plugin | Plugin[] {
   const instanceId = options?.instanceId || randomUUID().replace(/-/g, "");
 
-  const globalVarName = `__vite_c_css_pos_initial`;
-  const eventName = `__vite_c_css_pos_update`;
+  const globalVarName = `__vite_c_css_pos_initial_${instanceId}`;
+  const eventName = `__vite_c_css_pos_update_${instanceId}`;
 
   const cssPlugin = cssInjectedByJsPlugin({
     dev: {
@@ -50,7 +50,14 @@ export default function viteCustomCssPosition(
     {
       name: "vite-plugin-custom-css-position",
       config(c) {
-        return c;
+        return {
+          ...c,
+          define: {
+            ...c.define,
+            __VITE_CSS_POS_GLOBAL_VAR_NAME__: JSON.stringify(globalVarName),
+            __VITE_CSS_POS_EVENT_NAME__: JSON.stringify(eventName),
+          },
+        };
       },
     },
     ...(Array.isArray(cssPlugin) ? cssPlugin : [cssPlugin]),
