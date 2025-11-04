@@ -8,7 +8,7 @@ const getEventName = (): string => {
   return "__vite_c_css_pos_update";
 };
 
-export const StylesTarget = () => {
+const StylesTarget = () => {
   const globalVarName = getGlobalVarName();
   const eventName = getEventName();
   const globalVar = (window as any)[globalVarName];
@@ -43,3 +43,5 @@ export const StylesTarget = () => {
     );
   });
 };
+
+export default StylesTarget;

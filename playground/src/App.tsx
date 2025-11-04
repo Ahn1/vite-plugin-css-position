@@ -1,5 +1,5 @@
 import React from "react";
-import { StylesTarget } from "../../src/StylesTarget";
+import StylesTarget from "../../src/StylesTarget";
 
 export function App() {
   return (
