@@ -103,12 +103,6 @@ npm run play
 
 # Build the library
 npm run build
-
-# Run tests
-npm test
-
-# Type check
-npm run typecheck
 ```
 
 ## 📝 License
