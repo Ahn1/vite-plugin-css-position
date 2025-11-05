@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { StylesTargetProps } from "./StylesTarget.types";
 
 declare const __VITE_CSS_POS_GLOBAL_VAR_NAME__: string;
 declare const __VITE_CSS_POS_EVENT_NAME__: string;
@@ -8,11 +9,7 @@ const eventName = __VITE_CSS_POS_EVENT_NAME__;
 
 const getCurrent = () => (window as any)[globalVarName];
 
-const StylesTarget = (props: {
-  onChange?: (
-    stylesMap: Map<string, { css: string; attributes: Record<string, string> }>
-  ) => void;
-}) => {
+const StylesTarget = (props: StylesTargetProps) => {
   const [stylesMap, setStylesMap] = useState<
     Map<string, { css: string; attributes: Record<string, string> }>
   >(getCurrent() || new Map());
