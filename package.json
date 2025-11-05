@@ -12,14 +12,6 @@
     "type": "git",
     "url": "git+https://github.com/Ahn1/vite-plugin-css-position.git"
   },
-  "tags": [
-    "vite",
-    "css",
-    "position",
-    "react",
-    "vue",
-    "shadow-dom"
-  ],
   "author": "Alexander Bogoslawski <alexanderb@posteo.de>",
   "files": [
     "dist"
