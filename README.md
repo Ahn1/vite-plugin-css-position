@@ -35,10 +35,10 @@ Add the plugin to your `vite.config.ts`:
 
 ```typescript
 ...
-import { viteReactCssPosition } from "vite-plugin-css-position";
+import { viteCssPosition } from "vite-plugin-css-position";
 
 export default defineConfig({
-  plugins: [react(), /* or vue(), */ viteReactCssPosition()],
+  plugins: [react(), /* or vue(), */ viteCssPosition()],
 });
 ```
 
@@ -82,7 +82,7 @@ That's it! Your stylesheets will now be injected at the position of the `<Styles
 The plugin accepts optional configuration:
 
 ```typescript
-viteReactCssPosition({
+viteCssPosition({
   enableDev: true,
 });
 ```
