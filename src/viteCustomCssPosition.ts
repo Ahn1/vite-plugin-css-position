@@ -2,9 +2,20 @@ import type { Plugin } from "vite";
 import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 import { randomUUID, hash } from "crypto";
 
+// Extract jsAssetsFilterFunction type from the underlying plugin
+type CssInjectedPluginConfig = NonNullable<Parameters<typeof cssInjectedByJsPlugin>[0]>;
+type JsAssetsFilterFunction = CssInjectedPluginConfig["jsAssetsFilterFunction"];
+
 export interface ViteCustomCssPositionOptions {
   instanceId?: string;
   enableDev?: boolean;
+  /**
+   * Filter function to determine which JS entry file(s) should receive the CSS injection code.
+   * Useful when building multiple entry points and you want CSS only in specific entries.
+   * @param chunk - The output chunk being processed
+   * @returns true if CSS should be injected into this chunk
+   */
+  jsAssetsFilterFunction?: JsAssetsFilterFunction;
 }
 
 export default function viteCustomCssPosition(
@@ -16,6 +27,7 @@ export default function viteCustomCssPosition(
   const eventName = `__vite_c_css_pos_update_${instanceId}`;
 
   const cssPlugin = cssInjectedByJsPlugin({
+    jsAssetsFilterFunction: options?.jsAssetsFilterFunction,
     dev: {
       enableDev: options?.enableDev ?? false,
       removeStyleCode(id: string) {
