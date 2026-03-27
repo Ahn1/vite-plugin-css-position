@@ -1,5 +1,9 @@
 [![npm version](https://img.shields.io/npm/v/vite-plugin-css-position)](https://www.npmjs.com/package/vite-plugin-css-position)
+[![npm version](https://img.shields.io/npm/dm/vite-plugin-css-position)](https://www.npmjs.com/package/vite-plugin-css-position)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
+
 
 A Vite plugin that allows you to control where CSS stylesheets are injected in your React or Vue application. Perfect for scenarios where you need precise control over style placement, especially when working with Shadow DOM.
 
