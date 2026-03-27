@@ -47,7 +47,8 @@
     "play": "vite --config playground/vite.config.ts",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "release": "bumpp && pnpm publish",
+    "release": "bumpp && npm run release:nobump",
+    "release:nobump": "pnpm publish",
     "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
