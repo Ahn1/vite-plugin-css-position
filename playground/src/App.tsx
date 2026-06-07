@@ -8,7 +8,9 @@ export function App() {
 
   return (
     <div>
-      <StylesTarget />
+      <div className="styles">
+        <StylesTarget />
+      </div>
       <span>Test</span>
       <div className="card">
         <button onClick={() => setShow(true)}>Load lazy component</button>

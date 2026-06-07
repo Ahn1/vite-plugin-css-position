@@ -11,9 +11,23 @@
  * styles at a custom position (e.g. inside a Shadow DOM). Unlike the original it
  * does NOT run a nested Vite build to produce the injection code; the snippet is
  * built directly and wrapped in an IIFE.
+ *
+ * Beyond the original's CSS-in-JS modes (`inject`/`injectPerChunk`), this module
+ * adds a `cssChunks` mode that keeps Vite's emitted `.css` chunk files and only
+ * registers their URLs per chunk, so `StylesTarget` can link/adopt them at its
+ * position instead of inlining the CSS.
  */
 import { hash } from "crypto";
+import { posix } from "node:path";
 import type { Plugin, ResolvedConfig, Rollup } from "vite";
+
+/**
+ * - `inject`: concatenate all CSS into the entry chunk JS, registered as `<style>`.
+ * - `injectPerChunk`: inline each chunk's CSS into its JS, registered as `<style>`.
+ * - `cssChunks`: keep emitted `.css` files; register their URLs per chunk so they
+ *   can be linked/adopted at the `StylesTarget` position.
+ */
+export type InjectionMode = "inject" | "injectPerChunk" | "cssChunks";
 
 export interface CssInjectionOptions {
   /** Name of the global variable holding the styles Map. */
@@ -22,12 +36,8 @@ export interface CssInjectionOptions {
   eventName: string;
   /** Enable the experimental dev-mode (HMR) transform. */
   enableDev: boolean;
-  /**
-   * Inject CSS relative to each JS chunk (incl. lazily loaded ones) instead of
-   * concatenating everything into the entry chunk. Enables component-level
-   * granular lazy-loading of stylesheets.
-   */
-  relative: boolean;
+  /** How CSS is delivered and registered. See {@link InjectionMode}. */
+  mode: InjectionMode;
   /** Filter which JS chunks receive the CSS injection code. */
   jsAssetsFilterFunction?: ((chunk: Rollup.OutputChunk) => boolean) | undefined;
 }
@@ -77,9 +87,29 @@ function buildInjectionCode(
   const body =
     `const css = ${cssCodeExpr};const id = ${id};const attributes = JSON.parse('${attributesString}');` +
     `window.${globalVarName} = window.${globalVarName} || new Map();` +
-    `window.${globalVarName}.set(id, {css, attributes});` +
+    `window.${globalVarName}.set(id, {type:"style", css, attributes});` +
     `window.dispatchEvent( new Event('${eventName}') );`;
   return `(()=>{${body}})();`;
+}
+
+/**
+ * Build the runtime snippet (cssChunks mode) that registers emitted CSS file
+ * URLs in the global Map. URLs are resolved relative to the chunk via
+ * `import.meta.url`, which is base-agnostic (works for relative and absolute base).
+ */
+function buildLinkRegistrationCode(
+  globalVarName: string,
+  eventName: string,
+  items: Array<{ id: string; rel: string }>
+): string {
+  const data = JSON.stringify(items.map((it) => [it.id, it.rel]));
+  return (
+    `(()=>{const items=${data};` +
+    `window.${globalVarName}=window.${globalVarName}||new Map();` +
+    `for(const [id,rel] of items){` +
+    `window.${globalVarName}.set(id,{type:"link",href:new URL(rel,import.meta.url).href,attributes:{}});}` +
+    `window.dispatchEvent(new Event('${eventName}'));})();`
+  );
 }
 
 /** Code executed (dev mode) to remove a previously injected style on HMR update. */
@@ -290,11 +320,74 @@ function globalCssInjection(
 }
 
 /* -------------------------------------------------------------------------- */
+/* cssChunks mode                                                             */
+/* -------------------------------------------------------------------------- */
+
+function ensureRelative(p: string): string {
+  return p.startsWith(".") ? p : "./" + p;
+}
+
+/**
+ * Per chunk, append a snippet that registers the chunk's emitted CSS file URLs.
+ * CSS assets are NOT deleted from the bundle — they stay as cacheable files.
+ */
+function cssChunksInjection(
+  bundle: Rollup.OutputBundle,
+  assetsWithCss: Record<string, string[]>,
+  globalVarName: string,
+  eventName: string
+): void {
+  for (const [jsAssetName, cssAssets] of Object.entries(assetsWithCss)) {
+    const jsAsset = bundle[jsAssetName] as Rollup.OutputChunk;
+    const chunkDir = posix.dirname(jsAsset.fileName);
+    const items = cssAssets.map((css) => ({
+      id: hash("sha1", css).substring(0, 12),
+      rel: ensureRelative(posix.relative(chunkDir, css)),
+    }));
+    const code = buildLinkRegistrationCode(globalVarName, eventName, items);
+    jsAsset.code = buildOutputChunkWithCssInjectionCode(jsAsset.code, code, TOP_EXECUTION_PRIORITY);
+  }
+}
+
+/**
+ * Remove `.css` entries from a chunk's Vite preload dependency calls so Vite's
+ * `__vitePreload` runtime helper never injects them into `document.head` (we link
+ * them at the StylesTarget position instead). Drops the CSS indices from each
+ * `__vite__mapDeps([...])` call while leaving the (now dead) filename in the
+ * shared `m.f=[...]` array — avoids fragile re-indexing.
+ */
+function stripCssPreloadDeps(code: string): string {
+  const arrMatch = code.match(/m\.f=\[([^\]]*)\]/);
+  if (!arrMatch || arrMatch[1] === undefined) {
+    return code;
+  }
+  const entries = [...arrMatch[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  const cssIndices = new Set<number>();
+  entries.forEach((entry, i) => {
+    if (entry !== undefined && entry.endsWith(".css")) {
+      cssIndices.add(i);
+    }
+  });
+  if (cssIndices.size === 0) {
+    return code;
+  }
+  return code.replace(/__vite__mapDeps\(\[([^\]]*)\]\)/g, (_full, inner: string) => {
+    const kept = inner
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== "" && !cssIndices.has(Number(s)));
+    return `__vite__mapDeps([${kept.join(",")}])`;
+  });
+}
+
+/* -------------------------------------------------------------------------- */
 /* Plugin factory                                                             */
 /* -------------------------------------------------------------------------- */
 
 export function cssInjectionPlugins(options: CssInjectionOptions): Plugin[] {
-  const { globalVarName, eventName, relative, jsAssetsFilterFunction } = options;
+  const { globalVarName, eventName, mode, jsAssetsFilterFunction } = options;
+  // Both per-chunk modes need Vite to emit one CSS file per chunk.
+  const perChunk = mode === "injectPerChunk" || mode === "cssChunks";
   let config: ResolvedConfig;
 
   const plugins: Plugin[] = [
@@ -303,11 +396,11 @@ export function cssInjectionPlugins(options: CssInjectionOptions): Plugin[] {
       enforce: "post",
       name: "vite-plugin-css-position-injection",
       config(c, env) {
-        if (env.command === "build" && relative) {
+        if (env.command === "build" && perChunk) {
           c.build ??= {};
           if (c.build.cssCodeSplit === false) {
             warnLog(
-              "[vite-plugin-css-position] Override of 'build.cssCodeSplit' to true; it must be true when 'lazy' is enabled."
+              `[vite-plugin-css-position] Override of 'build.cssCodeSplit' to true; it must be true when mode is '${mode}'.`
             );
           }
           c.build.cssCodeSplit = true;
@@ -320,8 +413,6 @@ export function cssInjectionPlugins(options: CssInjectionOptions): Plugin[] {
         if (config.build.ssr) {
           return;
         }
-        const makeInjection = (css: string) =>
-          buildInjectionCode(globalVarName, eventName, JSON.stringify(css.trim()));
 
         const cssAssets = Object.keys(bundle).filter((i) => {
           const asset = bundle[i];
@@ -329,21 +420,33 @@ export function cssInjectionPlugins(options: CssInjectionOptions): Plugin[] {
         });
         let unusedCssAssets: string[] = [];
 
-        if (relative) {
+        if (mode === "cssChunks") {
+          // Keep emitted CSS files; register their URLs per chunk. The preload
+          // mapDeps stripping happens in a separate order:"post" hook below,
+          // because Vite resolves the __VITE_PRELOAD__ marker after this hook.
           const assetsWithCss = buildJsCssMap(bundle, jsAssetsFilterFunction);
-          relativeCssInjection(bundle, assetsWithCss, makeInjection);
-          unusedCssAssets = cssAssets.filter((cssAsset) => !!bundle[cssAsset]);
-          if (unusedCssAssets.length > 0) {
-            warnLog(
-              `[vite-plugin-css-position] Some CSS assets were not included in any known JS: ${unusedCssAssets.join(",")}`
-            );
-          }
+          cssChunksInjection(bundle, assetsWithCss, globalVarName, eventName);
+          // CSS assets and viteMetadata are intentionally kept (manifest stays valid).
         } else {
-          globalCssInjection(bundle, cssAssets, makeInjection, jsAssetsFilterFunction);
+          const makeInjection = (css: string) =>
+            buildInjectionCode(globalVarName, eventName, JSON.stringify(css.trim()));
+          if (mode === "injectPerChunk") {
+            const assetsWithCss = buildJsCssMap(bundle, jsAssetsFilterFunction);
+            relativeCssInjection(bundle, assetsWithCss, makeInjection);
+            unusedCssAssets = cssAssets.filter((cssAsset) => !!bundle[cssAsset]);
+            if (unusedCssAssets.length > 0) {
+              warnLog(
+                `[vite-plugin-css-position] Some CSS assets were not included in any known JS: ${unusedCssAssets.join(",")}`
+              );
+            }
+          } else {
+            globalCssInjection(bundle, cssAssets, makeInjection, jsAssetsFilterFunction);
+          }
+          clearImportedCssViteMetadataFromBundle(bundle, unusedCssAssets);
         }
 
-        clearImportedCssViteMetadataFromBundle(bundle, unusedCssAssets);
-
+        // Remove the CSS <link> tags Vite injected into the HTML head. In
+        // cssChunks mode all entry CSS is handled via registration, so strip all.
         const htmlFiles = Object.keys(bundle).filter((i) => i.endsWith(".html"));
         for (const name of htmlFiles) {
           const htmlChunk = bundle[name] as Rollup.OutputAsset;
@@ -361,6 +464,28 @@ export function cssInjectionPlugins(options: CssInjectionOptions): Plugin[] {
       },
     },
   ];
+
+  if (mode === "cssChunks") {
+    // Runs as order:"post" so it executes AFTER Vite's build-import-analysis has
+    // resolved __VITE_PRELOAD__ into __vite__mapDeps([...]); only then can we
+    // drop the .css indices to stop the preload helper injecting them into <head>.
+    plugins.push({
+      apply: "build",
+      enforce: "post",
+      name: "vite-plugin-css-position-preload-strip",
+      generateBundle: {
+        order: "post",
+        handler(_opts, bundle) {
+          for (const key of Object.keys(bundle)) {
+            const chunk = bundle[key];
+            if (chunk !== undefined && chunk.type === "chunk") {
+              chunk.code = stripCssPreloadDeps(chunk.code);
+            }
+          }
+        },
+      },
+    });
+  }
 
   if (options.enableDev) {
     warnLog("[vite-plugin-css-position] Experimental dev mode activated!");

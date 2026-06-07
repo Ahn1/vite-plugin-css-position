@@ -5,5 +5,8 @@ import viteReactCssPosition from "../src/viteCustomCssPosition";
 
 export default defineConfig({
   root: "./playground",
-  plugins: [viteReactCssPosition({ cssPerChunk: true }), react()],
+  plugins: [
+    viteReactCssPosition({ mode: "cssChunks", enableDev: true }),
+    react(),
+  ],
 });

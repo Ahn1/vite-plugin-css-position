@@ -86,22 +86,40 @@ The plugin accepts optional configuration:
 ```typescript
 viteCssPosition({
   enableDev: true,
-  cssPerChunk: true,
+  mode: "cssChunks",
 });
 ```
 
 ### Options
 
 - **`instanceId`** - A custom identifier for the plugin instance. Useful when you have multiple instances or need to avoid conflicts. Defaults to a random UUID.
-- **`enableDev`** - When `true`, enables CSS injection during development mode. Defaults to `false`. Enable this for HMR support
-- **`cssPerChunk`** - When `true`, each chunk's CSS is injected relative to that chunk instead of being bundled into the entry. This enables **component-level granular lazy-loading**: a code-split component's styles are only injected at the `StylesTarget` position when the component is actually loaded. Defaults to `false` (all CSS is injected up front — the previous behavior, fully backward compatible). Requires `build.cssCodeSplit` (Vite's default; it is forced on when `cssPerChunk` is enabled).
+- **`enableDev`** - When `true`, enables CSS injection during development mode. Defaults to `false`. Enable this for HMR support.
+- **`mode`** - How CSS is delivered and registered. Defaults to `"inject"`. See [Modes](#modes) below.
+- **`cssChunksStrategy`** - Only used when `mode: "cssChunks"`. `"link"` (default) renders `<link rel="stylesheet">`; `"adopt"` fetches the CSS and applies it via `adoptedStyleSheets`. See [Modes](#modes).
 - **`jsAssetsFilterFunction`** - Filter function `(chunk) => boolean` to control which JS output chunk(s) receive the CSS injection code. Useful with multiple entry points.
+- **`cssPerChunk`** _(deprecated)_ - Use `mode` instead. `true` maps to `mode: "injectPerChunk"`, `false`/unset to `mode: "inject"`. Ignored when `mode` is set.
 
-### Lazy-loading styles for code-split components
+### Modes
 
-With `cssPerChunk: true`, styles imported by a dynamically imported component are placed in that
-component's own chunk. When the component is loaded, its CSS is injected at the `StylesTarget`
-position — perfect for Shadow-DOM micro frontends that should not ship all CSS up front:
+`mode` controls how stylesheets reach the `StylesTarget` position:
+
+| `mode`                 | CSS delivery                         | Rendered as                     | Lazy-loading               |
+| ---------------------- | ------------------------------------ | ------------------------------- | -------------------------- |
+| `"inject"` _(default)_ | all CSS inlined into the entry JS    | `<style>`                       | no — loaded up front       |
+| `"injectPerChunk"`     | each chunk's CSS inlined into its JS | `<style>`                       | yes — per code-split chunk |
+| `"cssChunks"`          | Vite's emitted `.css` files are kept | `<link>` / `adoptedStyleSheets` | yes — per code-split chunk |
+
+`"inject"` is the original behavior and fully backward compatible. The per-chunk modes require
+`build.cssCodeSplit` (Vite's default; forced on automatically).
+
+**`mode` only affects the production build.** In dev (`enableDev: true`) CSS is always injected
+per-module for HMR.
+
+#### Component-level lazy-loading (`injectPerChunk` / `cssChunks`)
+
+With a per-chunk mode, styles imported by a dynamically imported component live with that
+component's chunk and only reach the `StylesTarget` position once the component loads — ideal for
+Shadow-DOM micro frontends that should not ship all CSS up front:
 
 ```tsx
 import { Suspense, lazy } from "react";
@@ -114,12 +132,29 @@ export function App() {
     <div>
       <StylesTarget />
       <Suspense fallback={null}>
-        <Chart /> {/* chart.css is injected only once this loads */}
+        <Chart /> {/* chart.css is included only once this loads */}
       </Suspense>
     </div>
   );
 }
 ```
+
+#### `cssChunks` mode — keep Vite's CSS files
+
+`mode: "cssChunks"` keeps Vite's normal, cacheable `.css` chunk files instead of inlining CSS into
+JavaScript, and only registers each chunk's CSS **URL**. `StylesTarget` then includes it at its
+position (and the plugin suppresses Vite's default `<head>` injection). Benefits: HTTP-cacheable CSS,
+leaner JS bundles, and CSP-friendliness (no inline styles).
+
+The `cssChunksStrategy` option chooses how the CSS is included:
+
+- **`"link"`** (default) — renders `<link rel="stylesheet">`. Simplest, but note that a `<link>`
+  inside a Shadow DOM is _not_ render-blocking, so a brief flash of unstyled content (FOUC) is
+  possible while it loads.
+- **`"adopt"`** — fetches the CSS file and applies it via
+  [`adoptedStyleSheets`](https://developer.mozilla.org/en-US/docs/Web/API/Document/adoptedStyleSheets).
+  No FOUC, deduplicated across multiple shadow roots, and CSP-ideal. Requires `fetch` and a modern
+  browser (Chrome 73+ / Firefox 101+ / Safari 16.4+);
 
 ## Development
 
