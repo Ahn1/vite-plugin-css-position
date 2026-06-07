@@ -17,18 +17,6 @@ A Vite plugin that allows you to control where CSS stylesheets are injected in y
 npm install vite-plugin-css-position
 ```
 
-or
-
-```bash
-pnpm add vite-plugin-css-position
-```
-
-or
-
-```bash
-yarn add vite-plugin-css-position
-```
-
 ## Quick Start
 
 ### 1. Configure Vite
