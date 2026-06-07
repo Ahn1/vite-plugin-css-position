@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-css-position",
-  "version": "2.0.9",
+  "version": "2.1.0",
   "description": "Custom position of vite styles within a vite react app",
   "type": "module",
   "license": "MIT",
@@ -45,6 +45,8 @@
     "build": "tsdown && vue-tsc --project tsconfig.vue.json --skipLibCheck && cp src/StylesTargetVue.vue dist/StylesTargetVue.vue",
     "dev": "tsdown --watch",
     "play": "vite --config playground/vite.config.ts",
+    "play:build": "vite build --config playground/vite.config.ts",
+    "play:preview": "vite preview --config playground/vite.config.ts",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "release": "bumpp && npm run release:nobump",
@@ -54,6 +56,7 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "vite": ">2.0.0-0",
     "vue": "^3.5.22"
   },
   "peerDependenciesMeta": {
@@ -85,8 +88,5 @@
     "vite": "^7.1.12",
     "vitest": "^4.0.1",
     "vue-tsc": "^3.1.3"
-  },
-  "dependencies": {
-    "vite-plugin-css-injected-by-js": "^3.5.2"
   }
 }

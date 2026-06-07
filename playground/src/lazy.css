@@ -1,0 +1,8 @@
+.lazy-box {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #646cff, #535bf2);
+  color: white;
+  font-weight: 600;
+}

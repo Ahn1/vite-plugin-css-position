@@ -7,13 +7,15 @@
 
 A Vite plugin that allows you to control where CSS stylesheets are injected in your React or Vue application. Perfect for scenarios where you need precise control over style placement, especially when working with Shadow DOM.
 
-## ✨ Features
+## Features
 
-- 🎯 **Custom CSS positioning** - Place stylesheets exactly where you need them in your component tree
-- 🌗 **Shadow DOM support** - Ideal for Shadow DOM implementations where styles need to be scoped
-- 🚀 **Development mode** - Optional hot module replacement support
+- **Custom CSS positioning** - Place stylesheets exactly where you need them in your component tree
+- **Shadow DOM support** - Ideal for Shadow DOM implementations where styles need to be scoped
+- **Component-level lazy-loading** - Optionally inject each (code-split) component's CSS only when it loads
+- **Zero dependencies** - No runtime dependencies; the CSS-by-JS injection is built in
+- **Development mode** - Optional hot module replacement support
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install vite-plugin-css-position
@@ -31,7 +33,7 @@ or
 yarn add vite-plugin-css-position
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Configure Vite
 
@@ -79,15 +81,16 @@ import StylesTarget from "vite-plugin-css-position/vue";
 </template>
 ```
 
-That's it! Your stylesheets will now be injected at the position of the `<StylesTarget />` component.
+Your stylesheets will now be injected at the position of the `<StylesTarget />` component.
 
-## ⚙️ Configuration
+## Configuration
 
 The plugin accepts optional configuration:
 
 ```typescript
 viteCssPosition({
   enableDev: true,
+  lazy: true,
 });
 ```
 
@@ -95,8 +98,34 @@ viteCssPosition({
 
 - **`instanceId`** - A custom identifier for the plugin instance. Useful when you have multiple instances or need to avoid conflicts. Defaults to a random UUID.
 - **`enableDev`** - When `true`, enables CSS injection during development mode. Defaults to `false`. Enable this for HMR support
+- **`lazy`** - When `true`, each (including lazily loaded) chunk's CSS is injected relative to that chunk instead of being bundled into the entry. This enables **component-level granular lazy-loading**: a code-split component's styles are only injected at the `StylesTarget` position when the component is actually loaded. Defaults to `false` (all CSS is injected up front — the previous behavior, fully backward compatible). Requires `build.cssCodeSplit` (Vite's default; it is forced on when `lazy` is enabled).
+- **`jsAssetsFilterFunction`** - Filter function `(chunk) => boolean` to control which JS output chunk(s) receive the CSS injection code. Useful with multiple entry points.
 
-## 🛠️ Development
+### Lazy-loading styles for code-split components
+
+With `lazy: true`, styles imported by a dynamically imported component are placed in that
+component's own chunk. When the component is loaded, its CSS is injected at the `StylesTarget`
+position — perfect for Shadow-DOM micro frontends that should not ship all CSS up front:
+
+```tsx
+import { Suspense, lazy } from "react";
+import StylesTarget from "vite-plugin-css-position/react";
+
+const Chart = lazy(() => import("./Chart")); // Chart imports its own ./chart.css
+
+export function App() {
+  return (
+    <div>
+      <StylesTarget />
+      <Suspense fallback={null}>
+        <Chart /> {/* chart.css is injected only once this loads */}
+      </Suspense>
+    </div>
+  );
+}
+```
+
+## Development
 
 ```bash
 # Install dependencies
@@ -109,11 +138,17 @@ npm run play
 npm run build
 ```
 
-## 📝 License
+## Credits
+
+The built-in CSS-by-JS injection is a trimmed, vendored port of
+[`vite-plugin-css-injected-by-js`](https://github.com/marco-prontera/vite-plugin-css-injected-by-js)
+by Marco Prontera (MIT License).
+
+## License
 
 MIT © [Alexander Bogoslawski](https://github.com/Ahn1)
 
-## 🔗 Links
+## Links
 
 - [GitHub Repository](https://github.com/Ahn1/vite-plugin-css-position)
 - [Issue Tracker](https://github.com/Ahn1/vite-plugin-css-position/issues)
