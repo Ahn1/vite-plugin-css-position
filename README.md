@@ -2,9 +2,6 @@
 [![npm version](https://img.shields.io/npm/dm/vite-plugin-css-position)](https://www.npmjs.com/package/vite-plugin-css-position)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-
-
-
 A Vite plugin that allows you to control where CSS stylesheets are injected in your React or Vue application. Perfect for scenarios where you need precise control over style placement, especially when working with Shadow DOM.
 
 ## Features
@@ -12,7 +9,6 @@ A Vite plugin that allows you to control where CSS stylesheets are injected in y
 - **Custom CSS positioning** - Place stylesheets exactly where you need them in your component tree
 - **Shadow DOM support** - Ideal for Shadow DOM implementations where styles need to be scoped
 - **Component-level lazy-loading** - Optionally inject each (code-split) component's CSS only when it loads
-- **Zero dependencies** - No runtime dependencies; the CSS-by-JS injection is built in
 - **Development mode** - Optional hot module replacement support
 
 ## Installation
@@ -44,7 +40,7 @@ Add the plugin to your `vite.config.ts`:
 import { viteCssPosition } from "vite-plugin-css-position";
 
 export default defineConfig({
-  plugins: [react(), /* or vue(), */ viteCssPosition()],
+  plugins: [react(), /* or vue(), */ viteCssPosition({ cssPerChunk: true })],
 });
 ```
 
