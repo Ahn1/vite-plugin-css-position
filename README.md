@@ -114,6 +114,17 @@ The `cssChunksStrategy` option chooses how the CSS is included:
   No FOUC, deduplicated across multiple shadow roots, and CSP-ideal. Requires `fetch` and a modern
   browser (Chrome 73+ / Firefox 101+ / Safari 16.4+);
 
+## Migrating from v2 to v3
+
+No code changes required — the default `mode: "inject"` behaves exactly like `2.0.9`.
+
+What's new in `3.0.0`:
+
+- New **`mode`** option: `"injectPerChunk"` and `"cssChunks"` add component-level lazy-loading; `"cssChunks"` keeps Vite's emitted `.css` files (see [Modes](#modes)).
+- **Zero runtime dependencies** — the CSS-by-JS injection is now built in.
+
+See the [CHANGELOG](./CHANGELOG.md) for details.
+
 ## Development
 
 ```bash
