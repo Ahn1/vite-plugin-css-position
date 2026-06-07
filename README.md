@@ -90,7 +90,7 @@ The plugin accepts optional configuration:
 ```typescript
 viteCssPosition({
   enableDev: true,
-  lazy: true,
+  cssPerChunk: true,
 });
 ```
 
@@ -98,12 +98,12 @@ viteCssPosition({
 
 - **`instanceId`** - A custom identifier for the plugin instance. Useful when you have multiple instances or need to avoid conflicts. Defaults to a random UUID.
 - **`enableDev`** - When `true`, enables CSS injection during development mode. Defaults to `false`. Enable this for HMR support
-- **`lazy`** - When `true`, each (including lazily loaded) chunk's CSS is injected relative to that chunk instead of being bundled into the entry. This enables **component-level granular lazy-loading**: a code-split component's styles are only injected at the `StylesTarget` position when the component is actually loaded. Defaults to `false` (all CSS is injected up front — the previous behavior, fully backward compatible). Requires `build.cssCodeSplit` (Vite's default; it is forced on when `lazy` is enabled).
+- **`cssPerChunk`** - When `true`, each chunk's CSS is injected relative to that chunk instead of being bundled into the entry. This enables **component-level granular lazy-loading**: a code-split component's styles are only injected at the `StylesTarget` position when the component is actually loaded. Defaults to `false` (all CSS is injected up front — the previous behavior, fully backward compatible). Requires `build.cssCodeSplit` (Vite's default; it is forced on when `cssPerChunk` is enabled).
 - **`jsAssetsFilterFunction`** - Filter function `(chunk) => boolean` to control which JS output chunk(s) receive the CSS injection code. Useful with multiple entry points.
 
 ### Lazy-loading styles for code-split components
 
-With `lazy: true`, styles imported by a dynamically imported component are placed in that
+With `cssPerChunk: true`, styles imported by a dynamically imported component are placed in that
 component's own chunk. When the component is loaded, its CSS is injected at the `StylesTarget`
 position — perfect for Shadow-DOM micro frontends that should not ship all CSS up front:
 

@@ -5,5 +5,5 @@ import viteReactCssPosition from "../src/viteCustomCssPosition";
 
 export default defineConfig({
   root: "./playground",
-  plugins: [viteReactCssPosition({ lazy: true }), react()],
+  plugins: [viteReactCssPosition({ cssPerChunk: true }), react()],
 });
