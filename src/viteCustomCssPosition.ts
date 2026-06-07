@@ -29,12 +29,13 @@ export interface ViteCustomCssPositionOptions {
 }
 
 export default function viteCustomCssPosition(
-  options?: ViteCustomCssPositionOptions
+  options?: ViteCustomCssPositionOptions,
 ): Plugin | Plugin[] {
-  const instanceId = options?.instanceId || randomUUID().replace(/-/g, "");
+  const instanceId =
+    options?.instanceId || randomUUID().replace(/-/g, "").slice(0, 4);
 
-  const globalVarName = `__vite_c_css_pos_initial_${instanceId}`;
-  const eventName = `__vite_c_css_pos_update_${instanceId}`;
+  const globalVarName = `__vcssp_c_${instanceId}`;
+  const eventName = `__vcssp_e_${instanceId}`;
 
   const cssPlugins = cssInjectionPlugins({
     globalVarName,
