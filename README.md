@@ -114,36 +114,7 @@ viteCssPosition({
 **`mode` only affects the production build.** In dev (`enableDev: true`) CSS is always injected
 per-module for HMR.
 
-#### Component-level lazy-loading (`injectPerChunk` / `cssChunks`)
-
-With a per-chunk mode, styles imported by a dynamically imported component live with that
-component's chunk and only reach the `StylesTarget` position once the component loads — ideal for
-Shadow-DOM micro frontends that should not ship all CSS up front:
-
-```tsx
-import { Suspense, lazy } from "react";
-import StylesTarget from "vite-plugin-css-position/react";
-
-const Chart = lazy(() => import("./Chart")); // Chart imports its own ./chart.css
-
-export function App() {
-  return (
-    <div>
-      <StylesTarget />
-      <Suspense fallback={null}>
-        <Chart /> {/* chart.css is included only once this loads */}
-      </Suspense>
-    </div>
-  );
-}
-```
-
-#### `cssChunks` mode — keep Vite's CSS files
-
-`mode: "cssChunks"` keeps Vite's normal, cacheable `.css` chunk files instead of inlining CSS into
-JavaScript, and only registers each chunk's CSS **URL**. `StylesTarget` then includes it at its
-position (and the plugin suppresses Vite's default `<head>` injection). Benefits: HTTP-cacheable CSS,
-leaner JS bundles, and CSP-friendliness (no inline styles).
+#### Mode `cssChunks` mode — keep Vite's CSS files
 
 The `cssChunksStrategy` option chooses how the CSS is included:
 
