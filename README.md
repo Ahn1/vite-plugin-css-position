@@ -102,7 +102,7 @@ viteCssPosition({
 **`mode` only affects the production build.** In dev (`enableDev: true`) CSS is always injected
 per-module for HMR.
 
-#### Mode `cssChunks` mode — keep Vite's CSS files
+#### `cssChunksStrategy` for Mode `cssChunks` mode
 
 The `cssChunksStrategy` option chooses how the CSS is included:
 
