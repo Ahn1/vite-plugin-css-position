@@ -40,7 +40,7 @@ Add the plugin to your `vite.config.ts`:
 import { viteCssPosition } from "vite-plugin-css-position";
 
 export default defineConfig({
-  plugins: [react(), /* or vue(), */ viteCssPosition({ cssPerChunk: true })],
+  plugins: [react(), /* or vue(), */ viteCssPosition({ mode: "injectPerChunk" /* or cssChunks */ })],
 });
 ```
 
@@ -97,7 +97,6 @@ viteCssPosition({
 - **`mode`** - How CSS is delivered and registered. Defaults to `"inject"`. See [Modes](#modes) below.
 - **`cssChunksStrategy`** - Only used when `mode: "cssChunks"`. `"link"` (default) renders `<link rel="stylesheet">`; `"adopt"` fetches the CSS and applies it via `adoptedStyleSheets`. See [Modes](#modes).
 - **`jsAssetsFilterFunction`** - Filter function `(chunk) => boolean` to control which JS output chunk(s) receive the CSS injection code. Useful with multiple entry points.
-- **`cssPerChunk`** _(deprecated)_ - Use `mode` instead. `true` maps to `mode: "injectPerChunk"`, `false`/unset to `mode: "inject"`. Ignored when `mode` is set.
 
 ### Modes
 

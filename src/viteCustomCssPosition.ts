@@ -1,6 +1,6 @@
 import type { Plugin, Rollup } from "vite";
 import { randomUUID } from "crypto";
-import { cssInjectionPlugins, type InjectionMode } from "./cssInjection";
+import { cssInjectionPlugins } from "./cssInjection";
 
 type JsAssetsFilterFunction = (chunk: Rollup.OutputChunk) => boolean;
 
@@ -22,8 +22,7 @@ interface BaseCssPositionOptions {
 
 /**
  * Mode-specific options. A discriminated union so that `cssChunksStrategy` is
- * only assignable when `mode: "cssChunks"`, and the deprecated `cssPerChunk` is
- * only assignable for the inline-inject modes.
+ * only assignable when `mode: "cssChunks"`.
  */
 type ModeCssPositionOptions =
   | {
@@ -37,11 +36,6 @@ type ModeCssPositionOptions =
        * @default "inject"
        */
       mode?: "inject" | "injectPerChunk";
-      /**
-       * @deprecated Use `mode` instead. `true` maps to `mode: "injectPerChunk"`,
-       * `false`/unset to `mode: "inject"`. Ignored when `mode` is set.
-       */
-      cssPerChunk?: boolean;
       /** Only valid with `mode: "cssChunks"`. */
       cssChunksStrategy?: never;
     }
@@ -62,23 +56,9 @@ type ModeCssPositionOptions =
        * @default "link"
        */
       cssChunksStrategy?: CssChunksStrategy;
-      /** Not applicable in `cssChunks` mode. */
-      cssPerChunk?: never;
     };
 
 export type ViteCustomCssPositionOptions = BaseCssPositionOptions & ModeCssPositionOptions;
-
-function resolveMode(options?: ViteCustomCssPositionOptions): InjectionMode {
-  if (options?.mode) {
-    if (options.cssPerChunk !== undefined) {
-      console.warn(
-        "[vite-plugin-css-position] Both 'mode' and the deprecated 'cssPerChunk' are set; 'mode' wins."
-      );
-    }
-    return options.mode;
-  }
-  return options?.cssPerChunk ? "injectPerChunk" : "inject";
-}
 
 export default function viteCustomCssPosition(
   options?: ViteCustomCssPositionOptions
@@ -94,7 +74,7 @@ export default function viteCustomCssPosition(
     globalVarName,
     eventName,
     enableDev: options?.enableDev ?? false,
-    mode: resolveMode(options),
+    mode: options?.mode ?? "inject",
     jsAssetsFilterFunction: options?.jsAssetsFilterFunction,
   });
 

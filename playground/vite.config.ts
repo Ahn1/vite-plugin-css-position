@@ -9,4 +9,7 @@ export default defineConfig({
     viteReactCssPosition({ mode: "cssChunks", enableDev: true }),
     react(),
   ],
+  build: {
+    manifest: true,
+  },
 });
