@@ -126,6 +126,62 @@ describe("StylesTarget (React)", () => {
     expect(onChange).toHaveBeenCalledTimes(calls);
   });
 
+  test("keeps existing style DOM nodes when additional styles register", async () => {
+    const StylesTarget = await loadStylesTarget();
+    const { container } = render(<StylesTarget />);
+
+    act(() => {
+      registerStyle("a", ".first {}");
+    });
+    const firstNode = container.querySelector("style")!;
+
+    act(() => {
+      registerStyle("b", ".second {}");
+    });
+    const styles = container.querySelectorAll("style");
+    expect(styles).toHaveLength(2);
+    // The pre-existing node must be reused, not remounted (no CSS re-parse).
+    expect(styles[0]).toBe(firstNode);
+  });
+
+  test("patches the same style node when an id's CSS changes (HMR)", async () => {
+    const StylesTarget = await loadStylesTarget();
+    const { container } = render(<StylesTarget />);
+
+    act(() => {
+      registerStyle("a", ".v1 {}");
+    });
+    const node = container.querySelector("style")!;
+
+    act(() => {
+      registerStyle("a", ".v2 {}");
+    });
+    expect(container.querySelectorAll("style")).toHaveLength(1);
+    expect(container.querySelector("style")).toBe(node);
+    expect(node.textContent).toBe(".v2 {}");
+  });
+
+  test("parent re-renders neither re-fire onChange nor drop the subscription", async () => {
+    const StylesTarget = await loadStylesTarget();
+    const first = vi.fn();
+    const second = vi.fn();
+    const { rerender } = render(<StylesTarget onChange={first} />);
+    expect(first).toHaveBeenCalledTimes(1);
+
+    // Swapping the callback (as inline props do on every parent render) must
+    // not trigger an update by itself…
+    rerender(<StylesTarget onChange={second} />);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+
+    // …but subsequent events must reach the latest callback.
+    act(() => {
+      registerStyle("a", ".x {}");
+    });
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).toHaveBeenCalledTimes(1);
+  });
+
   test('renders link entries as <link rel="stylesheet"> (strategy "link")', async () => {
     const StylesTarget = await loadStylesTarget("link");
     const { container } = render(<StylesTarget />);
@@ -185,6 +241,45 @@ describe('StylesTarget (React, strategy "adopt")', () => {
     await act(async () => {
       registerLink("b", "https://example.test/assets/chunk.css");
     });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(document.adoptedStyleSheets).toHaveLength(1);
+  });
+
+  test("fetches each file once even for rapid successive registrations", async () => {
+    const fetchMock = vi.fn(async () => ({ text: async () => ".adopted {}" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const StylesTarget = await loadStylesTarget("adopt");
+    document.adoptedStyleSheets = [];
+    render(<StylesTarget />);
+
+    // Two events for the same href land before the first fetch resolves —
+    // the promise cache must dedupe instead of racing a second request.
+    await act(async () => {
+      registerLink("a", "https://example.test/assets/chunk.css");
+      registerLink("b", "https://example.test/assets/chunk.css");
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(document.adoptedStyleSheets).toHaveLength(1);
+  });
+
+  test("shares fetched sheets across multiple StylesTarget instances", async () => {
+    const fetchMock = vi.fn(async () => ({ text: async () => ".adopted {}" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const StylesTarget = await loadStylesTarget("adopt");
+    document.adoptedStyleSheets = [];
+    render(
+      <>
+        <StylesTarget />
+        <StylesTarget />
+      </>
+    );
+
+    await act(async () => {
+      registerLink("a", "https://example.test/assets/chunk.css");
+    });
+    // One fetch and one shared sheet object, despite two live instances.
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(document.adoptedStyleSheets).toHaveLength(1);
   });

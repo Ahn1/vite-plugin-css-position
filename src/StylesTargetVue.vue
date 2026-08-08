@@ -15,6 +15,29 @@ const getCurrent = (): StylesMap | undefined => (window as any)[globalVarName];
 
 type LinkEntry = Extract<StyleEntry, { type: "link" }>;
 
+// Module-level cache: one fetch + parse per CSS file, shared across all
+// StylesTarget instances — adoptedStyleSheets is designed to share the same
+// sheet object between multiple (shadow) roots. Caching the promise (not the
+// sheet) also prevents duplicate fetches when events fire in quick succession.
+const sheetCache = new Map<string, Promise<CSSStyleSheet>>();
+
+function loadSheet(href: string): Promise<CSSStyleSheet> {
+  let promise = sheetCache.get(href);
+  if (!promise) {
+    promise = fetch(href)
+      .then((response) => response.text())
+      .then(async (css) => {
+        const sheet = new CSSStyleSheet();
+        await sheet.replace(css);
+        return sheet;
+      });
+    // Drop failed loads so a later update can retry them.
+    promise.catch(() => sheetCache.delete(href));
+    sheetCache.set(href, promise);
+  }
+  return promise;
+}
+
 export default defineComponent({
   name: "StylesTarget",
   props: {
@@ -27,12 +50,13 @@ export default defineComponent({
     const stylesMap = ref<StylesMap>(getCurrent() || new Map());
     const version = ref(0);
     const anchor = ref<HTMLSpanElement | null>(null);
-    // Cache constructed sheets per href so the same file is parsed once.
-    const adopted = new Map<string, CSSStyleSheet>();
 
     const updateListener = () => {
       const newValues = getCurrent() || new Map();
-      stylesMap.value = newValues;
+      // Snapshot into a new Map: the global map is mutated in place, so a new
+      // reference is needed to trigger the render (the render no longer reads
+      // `version`, which previously provided that reactive dependency via keys).
+      stylesMap.value = new Map(newValues);
       version.value++;
       (props.onChange as StylesTargetProps["onChange"])?.(newValues);
     };
@@ -45,22 +69,23 @@ export default defineComponent({
       if (!el) return;
       const root = el.getRootNode() as ShadowRoot;
       if (!("adoptedStyleSheets" in root)) return;
-      const hrefs = Array.from(stylesMap.value?.values() || [])
-        .filter(isLinkEntry)
-        .map((e: LinkEntry) => e.href);
-      void Promise.all(
-        hrefs.map(async (href) => {
-          if (adopted.has(href)) return;
-          const sheet = new CSSStyleSheet();
-          sheet.replaceSync(await (await fetch(href)).text());
-          adopted.set(href, sheet);
+      // Set: multiple entries may register the same CSS file (shared chunks).
+      const hrefs = [
+        ...new Set(
+          Array.from(stylesMap.value?.values() || [])
+            .filter(isLinkEntry)
+            .map((e: LinkEntry) => e.href)
+        ),
+      ];
+      void Promise.all(hrefs.map(loadSheet))
+        .then((sheets) => {
+          const existing = root.adoptedStyleSheets;
+          const toAdd = sheets.filter((s) => !existing.includes(s));
+          if (toAdd.length) root.adoptedStyleSheets = [...existing, ...toAdd];
         })
-      ).then(() => {
-        const desired = hrefs.map((h) => adopted.get(h)).filter(Boolean) as CSSStyleSheet[];
-        const existing = root.adoptedStyleSheets;
-        const toAdd = desired.filter((s) => !existing.includes(s));
-        if (toAdd.length) root.adoptedStyleSheets = [...existing, ...toAdd];
-      });
+        // A failed fetch simply leaves that sheet out; loadSheet already
+        // evicted it from the cache for a retry on the next update.
+        .catch(() => {});
     };
 
     onMounted(() => {
@@ -78,7 +103,10 @@ export default defineComponent({
           if (linkStrategy === "adopt") return null;
           return h("link", { key, rel: "stylesheet", href: entry.href, ...entry.attributes });
         }
-        return h("style", { key: `${key}-${version.value}`, ...entry.attributes }, entry.css);
+        // Keyed by id only: updates to an existing id (HMR) patch the text
+        // child of the existing <style> node. A changing key would remount
+        // every style element on each update and force a full re-parse.
+        return h("style", { key, ...entry.attributes }, entry.css);
       });
       if (linkStrategy === "adopt") {
         nodes.push(h("span", { ref: anchor, style: "display:none", "aria-hidden": "true" }));

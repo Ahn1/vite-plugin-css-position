@@ -126,8 +126,16 @@ function buildRemoveStyleCode(globalVarName: string, eventName: string, id: stri
 /* Bundle helpers (ported from vite-plugin-css-injected-by-js utils)          */
 /* -------------------------------------------------------------------------- */
 
-// The cache must be global since the execution context differs per entry.
+// The cache must be global since the execution context differs per entry. It is
+// cleared at buildStart (see plugin below) so watch-mode rebuilds — whose hashed
+// asset names change every time — don't grow it unboundedly.
 const cssSourceCache: Record<string, string> = {};
+
+export function clearCssSourceCache(): void {
+  for (const key of Object.keys(cssSourceCache)) {
+    delete cssSourceCache[key];
+  }
+}
 
 function extractCss(bundle: Rollup.OutputBundle, cssName: string): string {
   const cssAsset = bundle[cssName] as Rollup.OutputAsset | undefined;
@@ -408,6 +416,11 @@ export function cssInjectionPlugins(options: CssInjectionOptions): Plugin[] {
       },
       configResolved(resolved) {
         config = resolved;
+      },
+      // Runs once per build (also per watch-mode rebuild), before any output's
+      // generateBundle — safe point to reset the cross-output CSS cache.
+      buildStart() {
+        clearCssSourceCache();
       },
       generateBundle(_opts, bundle) {
         if (config.build.ssr) {

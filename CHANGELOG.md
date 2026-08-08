@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1]
+
+### Changed
+
+- **Performance:** `StylesTarget` (React & Vue) no longer remounts every `<style>`
+  node on updates — existing nodes are reused, HMR patches them in place.
+- **Performance (React):** the update listener is registered once; inline `onChange`
+  callbacks no longer cause re-subscriptions and extra renders on parent re-renders.
+
+### Fixed
+
+- `"adopt"`: the same stylesheet could be adopted twice when multiple chunks share a
+  CSS file or when registrations raced a pending fetch.
+- Internal CSS cache is cleared per build, preventing memory growth in watch mode.
+
 ## [3.0.0]
 
 This release rewrites the CSS handling internals and adds a flexible `mode` option,
@@ -13,6 +28,12 @@ inlining CSS into JavaScript.
 
 > **Migration:** Upgrading from `2.0.9` requires no code changes — the default
 > behavior (`mode: "inject"`) is identical to before.
+
+### Fixed
+
+- The plugin no longer returns the full user config from its `config` hook, which
+  could duplicate config arrays (e.g. `plugins`) during Vite's config merge.
+- The "dev mode activated" warning no longer appears during production builds.
 
 ### Added
 
@@ -39,5 +60,6 @@ inlining CSS into JavaScript.
   runtime dependency. The injected snippet is generated directly and IIFE-wrapped;
   it is no longer transpiled to `build.target` (negligible for modern browsers).
 
+[3.0.1]: https://github.com/Ahn1/vite-plugin-css-position/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/Ahn1/vite-plugin-css-position/compare/v2.0.9...v3.0.0
 [2.0.9]: https://github.com/Ahn1/vite-plugin-css-position/releases/tag/v2.0.9
