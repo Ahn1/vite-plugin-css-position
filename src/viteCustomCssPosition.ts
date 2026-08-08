@@ -1,5 +1,5 @@
 import type { Plugin, Rollup } from "vite";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { cssInjectionPlugins } from "./cssInjection";
 
 type JsAssetsFilterFunction = (chunk: Rollup.OutputChunk) => boolean;
@@ -81,11 +81,12 @@ export default function viteCustomCssPosition(
   return [
     {
       name: "vite-plugin-custom-css-position",
-      config(c) {
+      config() {
+        // Return only the additions — Vite merges them into the user config.
+        // Spreading the full config back would concatenate arrays (e.g.
+        // `plugins`) during merge and run every plugin twice.
         return {
-          ...c,
           define: {
-            ...c.define,
             __VITE_CSS_POS_GLOBAL_VAR_NAME__: JSON.stringify(globalVarName),
             __VITE_CSS_POS_EVENT_NAME__: JSON.stringify(eventName),
             __VITE_CSS_POS_LINK_STRATEGY__: JSON.stringify(linkStrategy),

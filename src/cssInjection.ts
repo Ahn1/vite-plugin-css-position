@@ -17,7 +17,7 @@
  * registers their URLs per chunk, so `StylesTarget` can link/adopt them at its
  * position instead of inlining the CSS.
  */
-import { hash } from "crypto";
+import { hash } from "node:crypto";
 import { posix } from "node:path";
 import type { Plugin, ResolvedConfig, Rollup } from "vite";
 
@@ -488,11 +488,14 @@ export function cssInjectionPlugins(options: CssInjectionOptions): Plugin[] {
   }
 
   if (options.enableDev) {
-    warnLog("[vite-plugin-css-position] Experimental dev mode activated!");
     plugins.push({
       name: "vite-plugin-css-position-injection-dev",
       apply: "serve",
       enforce: "post",
+      // apply: "serve" ensures this only logs for the dev server, not builds.
+      configResolved() {
+        warnLog("[vite-plugin-css-position] Experimental dev mode activated!");
+      },
       transform(src, id) {
         if (!isCSSRequest(id)) {
           return;
